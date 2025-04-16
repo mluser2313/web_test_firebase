@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Air Quality Dashboard Pro</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+	<!-- Leaflet CSS -->
+	<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+    <style>
+		.nav-links {
+        position: absolute;
+        top: 20px;
+        right: 20px;
+        display: flex;
+        gap: 1rem;
+    }
+
+    .nav-link {
+        color: #90e0ef;
+        text-decoration: none;
+        padding: 0.8rem 1.2rem;
+        border-radius: 0.5rem;
+        background: rgba(144, 224, 239, 0.1);
+        border: 1px solid rgba(144, 224, 239, 0.3);
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-weight: 500;
+    }
+
+    .nav-link:hover {
+        background: rgba(144, 224, 239, 0.2);
+        transform: translateY(-2px);
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    }
+
+    .nav-link i {
+        font-size: 1.1rem;
+    }
+        :root {
+            --primary: #4a90e2;
+            --secondary: #7c4dff;
+            --success: #00c853;
+            --warning: #ffab00;
+            --danger: #ff5252;
+            --dark: #1a1a1a;
+            --light: #f8f9fa;
+        }
+
+		body {
+    font-family: 'Inter', sans-serif;
+    background: linear-gradient(270deg, #0f2027, #203a43, #2c5364, #1c2b36, #203a43);
+    background-size: 800% 800%;
+    animation: animatedGradient 20s ease infinite;
+    color: var(--light);
+    min-height: 100vh;
+    margin: 0;
+    padding: 2rem;
+    overflow-x: hidden;
+}
+
+@keyframes animatedGradient {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+
+
+
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 3rem;
+            position: relative;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            background: linear-gradient(45deg, #00b4d8, #90e0ef);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 0.5rem;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 3rem;
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(12px);
+            border-radius: 1rem;
+            padding: 1.5rem;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1rem;
+        }
+
+        .card-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #90e0ef;
+        }
+
+        .card-icon {
+            font-size: 1.5rem;
+            color: rgba(144, 224, 239, 0.8);
+        }
+
+        .card-value {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin: 1rem 0;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 0.5rem;
+        }
+
+        .chart-container {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(12px);
+            border-radius: 1rem;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .aqi-status {
+            padding: 1.5rem;
+            border-radius: 1rem;
+            margin: 1rem 0;
+            animation: fadeIn 0.5s ease;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .aqi-status.good { background: linear-gradient(135deg, rgba(76, 175, 80, 0.3), rgba(76, 175, 80, 0.1)); }
+        .aqi-status.moderate { background: linear-gradient(135deg, rgba(255, 235, 59, 0.3), rgba(255, 235, 59, 0.1)); }
+        .aqi-status.unhealthy-sensitive { background: linear-gradient(135deg, rgba(255, 152, 0, 0.3), rgba(255, 152, 0, 0.1)); }
+        .aqi-status.unhealthy { background: linear-gradient(135deg, rgba(244, 67, 54, 0.3), rgba(244, 67, 54, 0.1)); }
+        .aqi-status.very-unhealthy { background: linear-gradient(135deg, rgba(156, 39, 176, 0.3), rgba(156, 39, 176, 0.1)); }
+        .aqi-status.hazardous { background: linear-gradient(135deg, rgba(124, 77, 255, 0.3), rgba(124, 77, 255, 0.1)); }
+
+        .status-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+        }
+
+        .status-message {
+            font-size: 0.95rem;
+            line-height: 1.6;
+            opacity: 0.9;
+        }
+
+        .last-updated {
+            text-align: center;
+            opacity: 0.7;
+            font-size: 0.9rem;
+            margin-top: 2rem;
+        }
+		.footer p{
+			color: white;
+			text-align: center;
+			font-size: 0.9rem;
+			opacity: 0.8; /* optional soft look */
+		}
+		
+
+        .unit {
+            font-size: 0.8rem;
+            opacity: 0.7;
+            margin-left: 0.3rem;
+        }
+
+        .glow {
+            position: absolute;
+            width: 200px;
+            height: 200px;
+            background: radial-gradient(circle, rgba(74, 144, 226, 0.3) 0%, transparent 70%);
+            pointer-events: none;
+        }
+    </style>
+    <script type="module" src="firebase.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+	<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Air Quality Dashboard</h1>
+            <div class="last-updated" id="lastUpdated"></div>
+			<div class="nav-links">
+    <a href="indexsecond.html" class="nav-link">
+        <i class="fas fa-chart-line"></i>
+        Secondary Sensor Data
+    </a>
+</div>
+        </div>
+
+        <!-- Insert this in place of your current <div class="grid"> block -->
+<div class="grid">
+    <!-- AQI Card -->
+    <div class="card">
+        <div class="card-header">
+            <span class="card-title"><i class="fas fa-wind"></i> AIR QUALITY INDEX</span>
+            <i class="fas fa-cloud-sun card-icon"></i>
+        </div>
+        <div class="card-value" id="aqi">--</div>
+        <div class="aqi-status" id="aqiStatus">
+            <div class="status-title"><div class="status-indicator"></div><span id="aqiTitle">Loading...</span></div>
+            <p class="status-message" id="aqiMessage">Loading air quality data...</p>
+        </div>
+    </div>
+	<!-- Location Map Card -->
+<div class="card">
+    <div class="card-header">
+        <span class="card-title"><i class="fas fa-map-marker-alt"></i> Sensor Location</span>
+        <i class="fas fa-map card-icon"></i>
+    </div>
+    <div id="map" style="height: 250px; border-radius: 0.5rem;"></div>
+</div>
+
+
+    <!-- PM2.5 Card -->
+    <div class="card">
+        <div class="card-header">
+            <span class="card-title"><i class="fas fa-smog"></i> PM2.5</span>
+            <i class="fas fa-particles card-icon"></i>
+        </div>
+        <div class="card-value"><span id="pm25">--</span><span class="unit">µg/m³</span></div>
+        <div class="aqi-status" id="pm25Status">
+            <div class="status-title"><div class="status-indicator"></div>PM2.5 Status</div>
+            <p class="status-message">Loading...</p>
+        </div>
+    </div>
+
+    <!-- PM10 Card -->
+    <div class="card">
+        <div class="card-header">
+            <span class="card-title"><i class="fas fa-cloud"></i> PM10</span>
+            <i class="fas fa-wind card-icon"></i>
+        </div>
+        <div class="card-value"><span id="pm10">--</span><span class="unit">µg/m³</span></div>
+        <div class="aqi-status" id="pm10Status">
+            <div class="status-title"><div class="status-indicator"></div>PM10 Status</div>
+            <p class="status-message">Loading...</p>
+        </div>
+    </div>
+
+    <!-- CO Card -->
+    <div class="card">
+        <div class="card-header">
+            <span class="card-title"><i class="fas fa-fire"></i> CO</span>
+            <i class="fas fa-burn card-icon"></i>
+        </div>
+        <div class="card-value"><span id="co">--</span><span class="unit">ppm</span></div>
+        <div class="aqi-status" id="coStatus">
+            <div class="status-title"><div class="status-indicator"></div>CO Status</div>
+            <p class="status-message">Loading...</p>
+        </div>
+    </div>
+
+    <!-- CO2 Card -->
+    <div class="card">
+        <div class="card-header">
+            <span class="card-title"><i class="fas fa-cloud-meatball"></i> CO2</span>
+            <i class="fas fa-industry card-icon"></i>
+        </div>
+        <div class="card-value"><span id="co2">--</span><span class="unit">ppm</span></div>
+        <div class="aqi-status" id="co2Status">
+            <div class="status-title"><div class="status-indicator"></div>CO2 Status</div>
+            <p class="status-message">Loading...</p>
+        </div>
+    </div>
+
+    <!-- O3 Card -->
+    <div class="card">
+        <div class="card-header">
+            <span class="card-title"><i class="fas fa-bolt"></i> O3 (Ozone)</span>
+            <i class="fas fa-cloud-showers-heavy card-icon"></i>
+        </div>
+        <div class="card-value"><span id="o3">--</span><span class="unit">ppb</span></div>
+        <div class="aqi-status" id="o3Status">
+            <div class="status-title"><div class="status-indicator"></div>Ozone Status</div>
+            <p class="status-message">Loading...</p>
+        </div>
+    </div>
+</div>
+
+
+        <div class="chart-container">
+            <canvas id="predictionChart"></canvas>
+        </div>
+    </div>
+
+    <!-- Add floating glow effects -->
+    <div class="glow" style="top: 20%; left: 10%"></div>
+    <div class="glow" style="top: 60%; right: 15%"></div>
+	<div class="footer">
+    <p>Powered by Firebase Realtime Database</p>
+</div>
+
+
+</body>
+</html>
